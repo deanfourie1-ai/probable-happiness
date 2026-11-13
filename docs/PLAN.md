@@ -73,3 +73,25 @@ Screens: Join (name + email, or `?join=<groupId>` invite) · Week view (two week
 | 6 | Pages readiness | `.nojekyll`, README, config documented |
 
 Not in v1: mobile layout, chat, time slots, calendar sync, Discord (all non-goals).
+
+## Status (2026-11-13, end of first build)
+
+All six phases are committed on `build/game-night-v1`. Not merged or pushed.
+
+**Verified:**
+- 18 rule tests and 9 Apps Script wrapper tests pass (`npm test`). The wrapper runs against in-memory fakes of SpreadsheetApp, MailApp, LockService, ScriptApp and Utilities.
+- Demo mode was driven end to end in Chromium (Playwright): join, optimistic mark, flag, switch person, confirm, poke and the email preview, settings save, Adventure and Arcade action-bar flows, reload persistence, and the invite link in a fresh browser. Screenshots were checked. No console errors.
+- Network mode was driven against a local fake that mimics Google's POST → 302 → JSON redirect. Requests go out as `text/plain` (no preflight), server errors surface as messages, and the page's Content-Security-Policy lets the calls through.
+
+**Not verified (needs Dean's Google account):**
+- A real Apps Script deployment: the permission screen, `MailApp` delivery, trigger timing, and Google's real redirect domain against the CSP (`script.googleusercontent.com` is allowed).
+
+**Bugs found by running it, fixed:**
+- If the invite details arrived while someone was typing their name, the redrawn screen wiped the input. Typed values are now kept in state across redraws (regression script: type before the invite loads, then check the value).
+- The Arcade font (Press Start 2P) has no "→" character, so it now uses ">".
+
+**Judgment calls:**
+- Groups of 3 or more need **every** other member to confirm (a pair needs the other person).
+- Joining a group does not reset existing nights. A confirmed night stays confirmed when someone new joins.
+- In demo mode only, a brand-new person is dropped into the sample groups so there's something to see.
+- Retro styles open the same poke dialog as Modern (the mockup poked instantly), so the optional note is still available.

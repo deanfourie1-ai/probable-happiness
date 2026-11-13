@@ -3,6 +3,6 @@
   "private": true,
   "description": "Game Night: weekly availability voting for gaming friends",
   "scripts": {
-    "test": "node tests/core.test.js"
+    "test": "node tests/core.test.js && node tests/appsscript.test.js"
   }
 }

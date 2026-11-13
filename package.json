@@ -1,0 +1,8 @@
+{
+  "name": "game-night",
+  "private": true,
+  "description": "Game Night: weekly availability voting for gaming friends",
+  "scripts": {
+    "test": "node tests/core.test.js"
+  }
+}

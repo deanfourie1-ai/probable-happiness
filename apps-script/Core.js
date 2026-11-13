@@ -372,6 +372,14 @@ var GN = (function () {
     var out = actions[name](db, req, ctx);
     out.changed = out.changed || [];
     out.mail = out.mail || [];
+    // A save can ask for the fresh state in the same round trip (Apps Script calls take ~1s each).
+    if (req.withState && name !== 'getState') {
+      var uid = name === 'register' ? out.result.user.id : str(req.userId);
+      if (userById(db, uid)) {
+        out.result = out.result || {};
+        out.result.state = actions.getState(db, { userId: uid }, ctx).result;
+      }
+    }
     return out;
   }
 

@@ -199,6 +199,15 @@ test('updateMe validates style and reminder time', () => {
   assert.strictEqual(u.reminderTime, '18:30');
 });
 
+test('withState returns the fresh state after a save, in one call', () => {
+  const s = setup();
+  const r = s.call({ action: 'setAvailability', userId: s.dean.id, groupId: s.g.id, date: D, free: true, withState: true }).result;
+  assert.deepStrictEqual(r.state.groups[0].avail[D], [s.dean.id]);
+  const reg = s.call({ action: 'register', name: 'Kim', email: 'kim@example.com', withState: true }).result;
+  assert.strictEqual(reg.state.me.name, 'Kim');
+  assert.deepStrictEqual(reg.state.groups, []);
+});
+
 test('housekeep drops rows older than 60 days', () => {
   const s = setup();
   s.db.Availability.push({ groupId: s.g.id, date: '2026-08-01', userId: s.dean.id });

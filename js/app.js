@@ -1,5 +1,5 @@
 /*
- * Game Night: the page.
+ * The page. Wording comes from apps-script/Words.js.
  * Plain DOM, no framework. Every user-supplied string goes in as text (textContent), never as HTML.
  */
 (function () {
@@ -8,30 +8,33 @@
   var DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var MAX_WEEKS_AHEAD = 12;
+  // What's being scheduled: change these in apps-script/Words.js, not here.
+  var W = window.GN_WORDS;
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
   // Per-style words. Modern is the default; Adventure and Arcade use "pick an action, then click a day".
   var STYLES = {
     modern: {
-      name: 'Modern', retro: false, brand: 'Game Night',
+      name: 'Modern', retro: false, brand: W.appName,
       green: 'Everyone free', some: function (n, t) { return n + ' of ' + t + ' free'; }, none: 'Nobody yet',
-      ribbon: 'Game night', you: 'You', free: 'Free', not: '—'
+      ribbon: cap(W.event), you: 'You', free: 'Free', not: '—'
     },
     adventure: {
-      name: 'Adventure', retro: true, brand: 'GAME NIGHT',
+      name: 'Adventure', retro: true, brand: W.appName.toUpperCase(),
       green: 'ALL ABOARD', some: function (n, t) { return n + ' OF ' + t + ' CREW'; }, none: 'NO ONE YET',
-      ribbon: 'GAME NIGHT!', you: 'You', free: 'free', not: '—',
+      ribbon: W.event.toUpperCase() + '!', you: 'You', free: 'free', not: '—',
       cannot: "That won't work.", ask: function (a) { return a + ' … which day?'; }, crew: 'Crew'
     },
     arcade: {
-      name: 'Arcade', retro: true, brand: 'GAME NIGHT',
+      name: 'Arcade', retro: true, brand: W.appName.toUpperCase(),
       green: 'ALL READY', some: function (n, t) { return n + '/' + t + ' READY'; }, none: 'INSERT PLAYER',
-      ribbon: '★ GAME NIGHT ★', you: 'P1 YOU', free: 'READY', not: '...',
+      ribbon: '★ ' + W.event.toUpperCase() + ' ★', you: 'P1 YOU', free: 'READY', not: '...',
       cannot: 'NOPE!', ask: function (a) { return a.toUpperCase() + ' > PICK A DAY'; }, crew: 'PLAYERS'
     }
   };
   var ACTIONS = [
     { id: 'mark', label: 'Mark free' },
-    { id: 'flag', label: 'Flag night' },
+    { id: 'flag', label: 'Flag ' + W.eventShort },
     { id: 'confirm', label: 'Confirm' },
     { id: 'poke', label: 'Poke' }
   ];
@@ -204,7 +207,7 @@
   function confirmNight(g, d) {
     return save('confirmNight', { groupId: g.id, date: d.date }).then(function (res) {
       var n = res && res.state ? findGroup(res.state, g.id).nights[d.date] : null;
-      return n && n.status === 'confirmed' ? 'Game night on ' + dayLabel(d.date) + '!' : 'Confirmed. Waiting for the others.';
+      return n && n.status === 'confirmed' ? cap(W.event) + ' on ' + dayLabel(d.date) + '!' : 'Confirmed. Waiting for the others.';
     });
   }
   function findGroup(st, id) { return st.groups.filter(function (x) { return x.id === id; })[0]; }
@@ -233,7 +236,7 @@
   }
 
   function brand() {
-    return h('div', { class: 'brand' }, svg(ICON_PAD), h('span', { class: 'brand-name' }, S.state ? T().brand : 'Game Night'));
+    return h('div', { class: 'brand' }, svg(ICON_PAD), h('span', { class: 'brand-name' }, S.state ? T().brand : W.appName));
   }
 
   // --- join ---
@@ -277,9 +280,9 @@
       h('section', { class: 'card join-card' },
         info
           ? h('div', null, h('div', { class: 'eyebrow' }, "You've been invited to"), h('h1', null, info.tag),
-              h('p', { class: 'muted' }, (info.members.length ? 'with ' + joinNames(info.members) + ' · ' : '') + "mark the days you can play and see when everyone's free."))
+              h('p', { class: 'muted' }, (info.members.length ? 'with ' + joinNames(info.members) + ' · ' : '') + 'mark the days you can ' + W.verb + " and see when everyone's free."))
           : h('div', null, h('h1', null, 'Who are you?'),
-              h('p', { class: 'muted' }, "Mark the days you can play, and see when everyone's free.")),
+              h('p', { class: 'muted' }, 'Mark the days you can ' + W.verb + ", and see when everyone's free.")),
         form));
   }
 
@@ -290,7 +293,7 @@
       S.joinGroupId = null;
       S.view = 'week';
       render();
-      toast('You joined ' + res.group.tag + '. Mark the days you can play.');
+      toast('You joined ' + res.group.tag + '. Mark the days you can ' + W.verb + '.');
     }, function () { S.joinGroupId = null; render(); });
   }
 
@@ -317,7 +320,7 @@
           var active = g && x.id === g.id;
           return h('button', { type: 'button', class: 'tab' + (active ? ' active' : ''), 'aria-pressed': active ? 'true' : 'false', onclick: function () {
             S.groupId = x.id; store(STORE_GROUP, x.id); S.msg = ''; S.focusDate = null; render();
-          } }, h('span', { class: 'tab-tag' }, x.tag), h('span', { class: 'tab-count' }, x.members.length + (x.members.length === 1 ? ' player' : ' players')));
+          } }, h('span', { class: 'tab-tag' }, x.tag), h('span', { class: 'tab-count' }, x.members.length + ' ' + (x.members.length === 1 ? W.member : W.members)));
         }),
         h('button', { type: 'button', class: 'tab tab-new', onclick: openNewGroup }, '+ New group')),
       stylePicker(),
@@ -346,7 +349,7 @@
       b.appendChild(svg(SUNSET));
       return b;
     }
-    return h('div', { class: 'band band-arcade' }, '★ ' + g.members.length + ' PLAYERS · PICK YOUR NIGHT · PRESS START ★');
+    return h('div', { class: 'band band-arcade' }, '★ ' + g.members.length + ' ' + W.members.toUpperCase() + ' · PICK YOUR ' + W.eventShort.toUpperCase() + ' · PRESS START ★');
   }
 
   function actionPanel(g) {
@@ -375,7 +378,7 @@
       h('div', null,
         h('div', { class: 'eyebrow' }, 'Group'),
         h('h1', { class: 'group-title' }, g.tag),
-        h('p', { class: 'muted' }, (others.length ? 'You, ' + others.join(', ') : 'Just you so far. Invite friends from Settings') + (T().retro ? '' : ' · mark the days you can play'))),
+        h('p', { class: 'muted' }, (others.length ? 'You, ' + others.join(', ') : 'Just you so far. Invite friends from Settings') + (T().retro ? '' : ' · mark the days you can ' + W.verb))),
       h('div', { class: 'week-tools' },
         T().retro ? null : h('div', { class: 'legend', 'aria-label': 'Legend' },
           h('span', null, h('i', { class: 'sw green' }), 'Everyone free'),
@@ -420,7 +423,7 @@
     if (!n) return null;
     if (n.status === 'confirmed') return me().remindersOn ? 'Confirmed · reminder at ' + fmtTime(me().reminderTime) : 'Confirmed · reminders off';
     if (n.by === S.userId) return 'You flagged this. Waiting for ' + joinNames(d.waitingFor.map(function (id) { return nameOf(g, id); })) + '.';
-    if (d.canConfirm) return nameOf(g, n.by) + ' flagged game night';
+    if (d.canConfirm) return nameOf(g, n.by) + ' flagged ' + W.event;
     return 'You confirmed. Waiting for ' + joinNames(d.waitingFor.map(function (id) { return nameOf(g, id); })) + '.';
   }
 
@@ -439,7 +442,7 @@
 
     if (t.retro) {
       // The whole day is one button; what it does depends on the action picked in the bar.
-      var label = dayLabel(d.date) + ', ' + d.n + ' of ' + d.total + ' free' + (d.night ? ', game night ' + d.night.status : '');
+      var label = dayLabel(d.date) + ', ' + d.n + ' of ' + d.total + ' free' + (d.night ? ', ' + W.event + ' ' + d.night.status : '');
       return h('button', { type: 'button', class: cls, 'aria-label': label, 'data-date': d.date, disabled: d.past,
         onclick: function () { retroClick(g, d); } },
         top, note ? h('span', { class: 'note' }, note) : null);
@@ -452,7 +455,7 @@
       if (d.canFlag) actions.push(h('button', { type: 'button', class: 'btn primary', onclick: function (e) {
         e.currentTarget.disabled = true;
         flag(g, d).then(function (m) { toast(m); }, function () {});
-      } }, 'Flag game night'));
+      } }, 'Flag ' + W.event));
       if (d.canConfirm) actions.push(h('button', { type: 'button', class: 'btn primary', onclick: function (e) {
         e.currentTarget.disabled = true;
         confirmNight(g, d).then(function (m) { toast(m); }, function () {});
@@ -493,7 +496,7 @@
   function emptyState() {
     return h('section', { class: 'card empty' },
       h('h1', null, 'No groups yet'),
-      h('p', { class: 'muted' }, 'Create a group for a game you play, then send your friends the invite link from Settings. Got an invite link from a friend? Just open it.'),
+      h('p', { class: 'muted' }, W.groupHint + ', then send your friends the invite link from Settings. Got an invite link from a friend? Just open it.'),
       h('button', { type: 'button', class: 'btn primary', onclick: openNewGroup }, 'Create a group'));
   }
 
@@ -511,10 +514,10 @@
     var boxes = d.notFree.map(function (id) {
       return { id: id, input: h('input', { type: 'checkbox', checked: true, value: id }) };
     });
-    var note = h('textarea', { rows: '3', maxlength: '300', id: 'poke-note', placeholder: "Keen for a few rounds? I'm free from 7." });
+    var note = h('textarea', { rows: '3', maxlength: '300', id: 'poke-note', placeholder: W.pokeExample });
     var send = h('button', { type: 'button', class: 'btn poke-send' }, 'Send poke');
     var dlg = dialog('Poke ' + joinNames(d.notFree.map(function (id) { return nameOf(g, id); })),
-      [h('p', { class: 'muted' }, 'Ask if they can play on ', h('strong', null, dayLabel(d.date)), ". They'll get an email with a link straight to that day."),
+      [h('p', { class: 'muted' }, 'Ask if they can ' + W.verb + ' on ', h('strong', null, dayLabel(d.date)), ". They'll get an email with a link straight to that day."),
         boxes.length > 1 ? h('fieldset', { class: 'who' }, h('legend', null, 'Who'),
           boxes.map(function (b) { return h('label', { class: 'check' }, b.input, nameOf(g, b.id)); })) : null,
         h('label', { for: 'poke-note' }, 'Add a note (optional)'), note],
@@ -532,10 +535,10 @@
   }
 
   function openNewGroup() {
-    var tag = h('input', { type: 'text', id: 'new-tag', maxlength: '30', placeholder: 'e.g. Valheim', required: true });
+    var tag = h('input', { type: 'text', id: 'new-tag', maxlength: '30', placeholder: 'e.g. ' + W.groupExample, required: true });
     var create = h('button', { type: 'button', class: 'btn primary' }, 'Create group');
     var dlg = dialog('New group', [
-      h('label', { for: 'new-tag' }, 'Game tag'), tag,
+      h('label', { for: 'new-tag' }, W.groupLabel), tag,
       h('p', { class: 'muted small' }, "You'll get an invite link to send your friends, in Settings.")
     ], [h('button', { type: 'submit', class: 'btn ghost', value: 'cancel' }, 'Cancel'), create]);
     function go() {
@@ -593,8 +596,8 @@
       h('fieldset', { class: 'section' }, h('legend', null, 'Your style'),
         h('p', { class: 'muted small' }, 'Only changes how the app looks for you. Friends keep their own.'),
         h('div', { class: 'style-cards' }, styleCards)),
-      h('fieldset', { class: 'section' }, h('legend', null, 'Game-night reminder'),
-        h('label', { class: 'check' }, remOn, 'Email me on the day of a confirmed game night'),
+      h('fieldset', { class: 'section' }, h('legend', null, cap(W.event) + ' reminder'),
+        h('label', { class: 'check' }, remOn, 'Email me on the day of a confirmed ' + W.event),
         h('label', { class: 'inline', for: 's-time' }, 'Send it at', remTime)),
       h('div', { class: 'section row' },
         h('div', null, h('div', { class: 'strong' }, 'This browser'), h('div', { class: 'muted small' }, 'Remembers you as ' + u.name)),
@@ -637,6 +640,7 @@
 
   // ---------- boot ----------
   function boot() {
+    document.title = W.appName;
     A.onDemoMail(showOutbox);
     var params = new URLSearchParams(location.search);
     var join = params.get('join'), gid = params.get('group'), date = params.get('date');
@@ -686,7 +690,7 @@
   function viewError() {
     return h('main', { class: 'join' }, brand(),
       h('section', { class: 'card join-card' },
-        h('h1', null, "Couldn't load Game Night"),
+        h('h1', null, "Couldn't load " + W.appName),
         h('p', { class: 'muted' }, S.error || 'Something went wrong.'),
         h('button', { type: 'button', class: 'btn primary block', onclick: function () { location.reload(); } }, 'Try again')));
   }

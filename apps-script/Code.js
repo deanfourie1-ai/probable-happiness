@@ -67,7 +67,7 @@ function setup() {
   ScriptApp.newTrigger('dailyHousekeep').timeBased().everyDays(1).atHour(4).create();
   var first = ss.getSheetByName('Sheet1');
   if (first && first.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(first);
-  console.log('Game Night is set up. Mail quota left today: ' + MailApp.getRemainingDailyQuota());
+  console.log(GN.words().appName + ' is set up. Mail quota left today: ' + MailApp.getRemainingDailyQuota());
 }
 
 // ---------- internals ----------
@@ -148,7 +148,7 @@ function saveDb_(db, changed) {
 function sendMail_(mail) {
   (mail || []).forEach(function (m) {
     try {
-      var opts = { to: m.to, subject: m.subject, htmlBody: m.html, name: 'Game Night' };
+      var opts = { to: m.to, subject: m.subject, htmlBody: m.html, name: GN.words().appName };
       if (m.replyTo) opts.replyTo = m.replyTo;
       MailApp.sendEmail(opts);
     } catch (err) {

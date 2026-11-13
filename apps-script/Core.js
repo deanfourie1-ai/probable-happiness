@@ -1,5 +1,5 @@
 /*
- * Game Night: core rules.
+ * Core rules (the app ships as Game Night; wording is in Words.js).
  *
  * Pure functions over in-memory tables. The same file runs in three places:
  *   - Google Apps Script (Code.js loads the Sheet into tables and calls GN.handle)
@@ -29,6 +29,15 @@ var GN = (function () {
   var DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   var DOW_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  // Wording lives in Words.js. Looked up on each use: in Apps Script, files load in the order they
+  // appear in the editor, so GN_WORDS may not exist yet when this file first runs.
+  function W() {
+    if (typeof GN_WORDS !== 'undefined') return GN_WORDS;
+    if (typeof require === 'function') return require('./Words.js');
+    throw new Error('Words.js is missing. Add it next to Core.js (see docs/SETUP.md).');
+  }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
   function fail(msg) { var e = new Error(msg); e.userFacing = true; throw e; }
 
@@ -135,7 +144,7 @@ var GN = (function () {
       '<h1 style="font-size:24px;margin:0 0 16px">' + escapeHtml(title) + '</h1>' + bodyHtml +
       '<p style="margin:24px 0"><a href="' + escapeHtml(url) + '" style="background:#3B4FCC;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">' +
       escapeHtml(buttonLabel) + '</a></p>' +
-      '<p style="font-size:12px;color:#5A6478">Sent by Game Night. Change reminders in Settings.</p></div>';
+      '<p style="font-size:12px;color:#5A6478">Sent by ' + escapeHtml(W().appName) + '. Change reminders in Settings.</p></div>';
   }
   function link(ctx, groupId, date) {
     var base = str(ctx.appUrl) || '';
@@ -194,7 +203,7 @@ var GN = (function () {
   actions.createGroup = function (db, req, ctx) {
     var u = requireUser(db, req.userId);
     var tag = str(req.tag);
-    if (!tag) fail('Give the group a game tag.');
+    if (!tag) fail('Give the group a ' + W().groupLabel.toLowerCase() + '.');
     if (tag.length > 30) fail('Keep the tag under 30 characters.');
     var g = { id: ctx.newId(), tag: tag, createdBy: u.id, createdAt: iso(ctx) };
     db.Groups.push(g);
@@ -265,7 +274,7 @@ var GN = (function () {
     var g = requireMember(db, req.groupId, u.id);
     var date = str(req.date);
     requireFutureDate(date, u, ctx);
-    if (!isGreen(db, g.id, date)) fail('Only a day where everyone is free can be game night.');
+    if (!isGreen(db, g.id, date)) fail('Only a day where everyone is free can be ' + W().event + '.');
     if (nightAt(db, g.id, date)) fail('That day is already flagged.');
     db.Nights.push({ groupId: g.id, date: date, status: 'proposed', by: u.id, confirmedBy: '', updatedAt: iso(ctx) });
     reconcile(db, g.id, ctx);
@@ -303,13 +312,13 @@ var GN = (function () {
       if (free.indexOf(id) !== -1) fail('They already marked that day free.');
       var target = userById(db, id);
       var body = '<p>' + escapeHtml(u.name) + ' is free on <strong>' + escapeHtml(dayLabel(date, true)) +
-        '</strong> for <strong>' + escapeHtml(g.tag) + '</strong> and wants to know if you can play.</p>' +
+        '</strong> for <strong>' + escapeHtml(g.tag) + '</strong> and wants to know if you can ' + escapeHtml(W().verb) + '.</p>' +
         (note ? '<blockquote style="margin:0;padding:12px 16px;background:#F3F5F9;border-radius:8px">' + escapeHtml(note) + '</blockquote>' : '');
       mail.push({
         to: target.email,
         replyTo: u.email,
-        subject: u.name + ' wants to play ' + dayLabel(date, false),
-        html: emailShell('Can you play ' + DOW_LONG[new Date(date + 'T12:00:00Z').getUTCDay()] + '?', body, 'Mark ' + dayLabel(date, false), link(ctx, g.id, date))
+        subject: u.name + ' wants to ' + W().verb + ' ' + dayLabel(date, false),
+        html: emailShell('Can you ' + W().verb + ' ' + DOW_LONG[new Date(date + 'T12:00:00Z').getUTCDay()] + '?', body, 'Mark ' + dayLabel(date, false), link(ctx, g.id, date))
       });
       db.Log.push({ at: iso(ctx), kind: 'poke', groupId: g.id, date: date, userId: id, detail: 'from ' + u.id });
     });
@@ -343,8 +352,8 @@ var GN = (function () {
           .map(function (x) { var o = userById(db, x); return o ? o.name : '?'; });
         var body = '<p style="padding:16px;background:#EAF8F1;border:1px solid #9FDDBF;border-radius:10px"><strong>' +
           escapeHtml(g.tag) + ' · ' + escapeHtml(dayLabel(n.date, true)) + '</strong><br>With ' + escapeHtml(others.join(', ') || 'your group') + '</p>';
-        mail.push({ to: u.email, subject: 'Game night tonight: ' + g.tag,
-          html: emailShell("You're playing tonight", body, 'Open Game Night', link(ctx, g.id, n.date)) });
+        mail.push({ to: u.email, subject: cap(W().event) + ' ' + W().when + ': ' + g.tag,
+          html: emailShell(W().reminderTitle, body, 'Open ' + W().appName, link(ctx, g.id, n.date)) });
         db.Log.push({ at: iso(ctx), kind: 'reminder', groupId: g.id, date: n.date, userId: id, detail: '' });
       });
     });
@@ -383,7 +392,7 @@ var GN = (function () {
     return out;
   }
 
-  return { TABLES: TABLES, STYLES: STYLES, emptyDb: emptyDb, handle: handle, dayLabel: dayLabel, escapeHtml: escapeHtml };
+  return { words: W, TABLES: TABLES, STYLES: STYLES, emptyDb: emptyDb, handle: handle, dayLabel: dayLabel, escapeHtml: escapeHtml };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = GN;

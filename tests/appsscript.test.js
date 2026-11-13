@@ -75,7 +75,7 @@ const sandbox = {
   }
 };
 vm.createContext(sandbox);
-for (const f of ['Core.js', 'Code.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'apps-script', f), 'utf8'), sandbox, { filename: f });
+for (const f of ['Words.js', 'Core.js', 'Code.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'apps-script', f), 'utf8'), sandbox, { filename: f });
 
 const post = (req) => JSON.parse(sandbox.doPost({ postData: { contents: JSON.stringify(req) } }).body);
 

@@ -95,3 +95,12 @@ All six phases are committed on `build/game-night-v1`. Not merged or pushed.
 - Joining a group does not reset existing nights. A confirmed night stays confirmed when someone new joins.
 - In demo mode only, a brand-new person is dropped into the sample groups so there's something to see.
 - Retro styles open the same poke dialog as Modern (the mockup poked instantly), so the optional note is still available.
+
+## Reuse for other kinds of scheduling (2026-11-13)
+
+The repo is public, so it's set up for others to fork and reword: an MIT licence, a README written for strangers, and every game-specific word moved into `apps-script/Words.js`.
+
+- **Why a separate file, not a block in `config.js`:** the emails are written by `Core.js` inside Apps Script, which never sees `js/config.js`. `Words.js` is loaded in all three places `Core.js` runs (Apps Script, the browser, the tests), the same way `Core.js` is, so the wording has one copy.
+- **Why `Core.js` looks the words up on each use:** Apps Script loads files in the order they appear in the editor, so `GN_WORDS` may not exist yet when `Core.js` first runs.
+- **Left out on purpose:** the Adventure and Arcade styles' own vocabulary ("CREW", "PRESS START"), the controller icon and the demo's sample groups. The README lists where those live.
+- **Verified:** a test runs the whole flow with "Book Club" wording and checks the errors and email subjects and bodies. The page was loaded in Chrome with both the default and a reworded `Words.js`, and showed the right words with no console errors.

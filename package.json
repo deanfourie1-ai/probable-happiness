@@ -1,7 +1,8 @@
 {
   "name": "game-night",
   "private": true,
-  "description": "Game Night: weekly availability voting for gaming friends",
+  "description": "Find the days everyone in a group is free. Ships as Game Night; reword it for any kind of get-together.",
+  "license": "MIT",
   "scripts": {
     "test": "node tests/core.test.js && node tests/appsscript.test.js"
   }

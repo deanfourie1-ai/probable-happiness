@@ -216,5 +216,32 @@ test('housekeep drops rows older than 60 days', () => {
   assert.deepStrictEqual(s.db.Availability.map((a) => a.date), [D]);
 });
 
+test('wording from Words.js reaches the emails and errors (reuse for other kinds of scheduling)', () => {
+  const vm = require('vm'), fs = require('fs'), path = require('path');
+  const box = { GN_WORDS: Object.assign({}, require('../apps-script/Words.js'),
+    { appName: 'Book Club', event: 'book night', verb: 'meet', when: 'today', reminderTitle: 'Book club is on today', groupLabel: 'Club name' }) };
+  vm.createContext(box);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'apps-script', 'Core.js'), 'utf8') + '\nthis.GN = GN;', box);
+  const BC = box.GN;
+  const db = BC.emptyDb(), ctx = ctxAt('2026-11-13T09:00:00Z');
+  const call = (req, c) => BC.handle(db, req, c || ctx);
+  const a = call({ action: 'register', name: 'Ana', email: 'ana@example.com', tz: 'UTC' }).result.user;
+  const b = call({ action: 'register', name: 'Ben', email: 'ben@example.com', tz: 'UTC' }).result.user;
+  throwsMsg(() => call({ action: 'createGroup', userId: a.id, tag: '' }), /Give the group a club name/);
+  const g = call({ action: 'createGroup', userId: a.id, tag: 'Classics' }).result.group;
+  call({ action: 'joinGroup', userId: b.id, groupId: g.id });
+  call({ action: 'setAvailability', userId: a.id, groupId: g.id, date: D, free: true });
+  throwsMsg(() => call({ action: 'flagNight', userId: a.id, groupId: g.id, date: D }), /can be book night/);
+  const poke = call({ action: 'poke', userId: a.id, groupId: g.id, date: D, to: [b.id] }).mail[0];
+  assert.strictEqual(poke.subject, 'Ana wants to meet Thu 19 Nov');
+  assert.ok(poke.html.includes('Can you meet Thursday?') && poke.html.includes('Sent by Book Club'));
+  call({ action: 'setAvailability', userId: b.id, groupId: g.id, date: D, free: true });
+  call({ action: 'flagNight', userId: a.id, groupId: g.id, date: D });
+  call({ action: 'confirmNight', userId: b.id, groupId: g.id, date: D });
+  const sent = BC.handle(db, { action: 'runReminders' }, ctxAt(D + 'T18:00:00Z'), { internal: true }).mail;
+  assert.strictEqual(sent[0].subject, 'Book night today: Classics');
+  assert.ok(sent[0].html.includes('Book club is on today') && sent[0].html.includes('Open Book Club'));
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
